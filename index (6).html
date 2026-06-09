@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#1a1208">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Skin Journal">
+<title>Foziya · Skin Journal</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+<style>
+:root{
+  --ink:#1a1208;--parchment:#faf6ee;--warm:#f5ede0;
+  --gold:#c49a4a;--gold-d:#e8d4a8;--gold-p:#faf3e4;
+  --terra:#b85c38;--terra-p:#f7ece6;
+  --sage:#5a7a5e;--sage-p:#e8f0e9;
+  --dust:#9e8a72;--soft:#d4b896;
+  --bd:rgba(196,154,74,.2);--bds:rgba(196,154,74,.4);
+  --sh:0 1px 14px rgba(26,18,8,.08);
+  --r:12px;--rs:7px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--parchment);color:var(--ink);font-family:'Jost',sans-serif;font-size:14px;min-height:100vh;padding-bottom:80px;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+
+/* SPLASH */
+#splash{position:fixed;inset:0;background:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .6s}
+#splash.fade{opacity:0;pointer-events:none}
+.sp-logo{font-family:'Cormorant Garamond',serif;font-size:40px;color:var(--gold-d);letter-spacing:.06em;margin-bottom:8px}
+.sp-sub{font-size:11px;color:var(--dust);letter-spacing:.14em;text-transform:uppercase;margin-bottom:48px}
+.sp-ring{width:44px;height:44px;border-radius:50%;border:2px solid rgba(196,154,74,.15);border-top-color:var(--gold);animation:spin .8s linear infinite}
+.sp-msg{font-size:11px;color:var(--dust);margin-top:16px;letter-spacing:.04em}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* SETUP WIZARD */
+#setup{position:fixed;inset:0;background:var(--ink);display:none;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;overflow-y:auto;z-index:8000}
+#setup.show{display:flex}
+.wz-logo{font-family:'Cormorant Garamond',serif;font-size:28px;color:var(--gold-d);text-align:center;margin-bottom:4px}
+.wz-sub{font-size:11px;color:var(--dust);letter-spacing:.1em;text-transform:uppercase;text-align:center;margin-bottom:28px}
+.wz-step{width:100%;max-width:400px;margin-bottom:14px}
+.wz-card{background:rgba(255,255,255,.05);border:1px solid rgba(196,154,74,.2);border-radius:var(--r);padding:20px}
+.wz-num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--gold);color:var(--ink);font-size:11px;font-weight:500;margin-bottom:10px}
+.wz-title{font-size:13px;font-weight:500;color:var(--gold-d);margin-bottom:4px}
+.wz-desc{font-size:11px;color:var(--dust);line-height:1.6;margin-bottom:14px}
+.wz-desc a{color:var(--gold);text-decoration:none}
+.wz-input{width:100%;padding:10px 13px;background:rgba(255,255,255,.07);border:1px solid rgba(196,154,74,.2);border-radius:var(--rs);color:var(--gold-d);font-family:'Jost',sans-serif;font-size:13px;margin-bottom:8px;outline:none;transition:border-color .2s}
+.wz-input:focus{border-color:var(--gold)}
+.wz-input::placeholder{color:rgba(158,138,114,.45)}
+.wz-btn{width:100%;max-width:400px;padding:14px;background:var(--gold);color:var(--ink);border:none;border-radius:var(--rs);font-family:'Jost',sans-serif;font-size:14px;font-weight:500;cursor:pointer;letter-spacing:.03em;transition:opacity .15s}
+.wz-btn:active{opacity:.85}
+.wz-link{font-size:11px;color:var(--dust);text-align:center;margin-top:14px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.wz-hint{background:rgba(196,154,74,.08);border-radius:var(--rs);padding:10px 12px;font-size:11px;color:var(--soft);line-height:1.6;margin-bottom:12px}
+.wz-hint strong{color:var(--gold-d)}
+
+/* INSTALL BANNER */
+#install-banner{display:none;background:linear-gradient(135deg,#2c1f0e,#3e2a12);border:1px solid var(--bds);margin:12px 16px 0;border-radius:var(--r);padding:12px 14px;align-items:center;gap:10px}
+#install-banner.show{display:flex}
+.ib-ico{font-size:22px;flex-shrink:0}
+.ib-txt{flex:1;font-size:11.5px;color:var(--gold-d);line-height:1.5}
+.ib-txt strong{color:var(--gold);display:block;font-size:12px;margin-bottom:1px}
+.ib-btn{padding:7px 13px;background:var(--gold);color:var(--ink);border:none;border-radius:var(--rs);font-family:'Jost',sans-serif;font-size:11px;font-weight:500;cursor:pointer;flex-shrink:0}
+.ib-x{background:none;border:none;color:var(--dust);font-size:16px;cursor:pointer;flex-shrink:0;padding:4px}
+
+/* HEADER */
+.hdr{background:var(--ink);padding:16px 18px 12px;position:relative;overflow:hidden}
+.hdr::before{content:'';position:absolute;width:150px;height:150px;border-radius:50%;border:1px solid rgba(196,154,74,.1);top:-55px;right:-35px}
+.hdr::after{content:'';position:absolute;width:80px;height:80px;border-radius:50%;border:1px solid rgba(196,154,74,.08);bottom:-25px;left:-15px}
+.hdr-row{display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:1}
+.hdr-name{font-family:'Cormorant Garamond',serif;font-size:21px;color:var(--gold-d);letter-spacing:.03em}
+.hdr-date{font-size:10.5px;color:var(--dust);margin-top:2px;letter-spacing:.03em}
+.hdr-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.sync-pill{display:flex;align-items:center;gap:5px;font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid}
+.sync-pill.on{color:var(--sage);background:rgba(90,122,94,.12);border-color:rgba(90,122,94,.25)}
+.sync-pill.off{color:var(--dust);background:rgba(158,138,114,.08);border-color:rgba(158,138,114,.18)}
+.sync-dot{width:5px;height:5px;border-radius:50%}
+.sync-pill.on .sync-dot{background:var(--sage)}
+.sync-pill.off .sync-dot{background:var(--dust)}
+.cfg-btn{font-size:9px;color:var(--dust);background:none;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+
+/* STATUS BAR */
+.status-bar{background:rgba(196,154,74,.06);border-bottom:1px solid var(--bd);padding:6px 16px;font-size:10.5px;color:var(--dust);line-height:1.5}
+.status-bar strong{color:var(--terra)}
+
+/* DAY SELECTOR */
+.day-bar{background:var(--warm);border-bottom:1px solid var(--bd);padding:8px 12px;display:flex;overflow-x:auto;gap:5px;scrollbar-width:none}
+.day-bar::-webkit-scrollbar{display:none}
+.db-btn{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 10px;border-radius:var(--rs);border:1px solid transparent;background:transparent;cursor:pointer;min-width:50px;transition:all .15s}
+.db-btn.active{background:var(--ink);border-color:var(--gold)}
+.db-btn .dn{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--dust)}
+.db-btn.active .dn{color:var(--gold)}
+.db-btn .dd{font-size:9px;color:var(--dust);opacity:.7}
+.db-btn.active .dd{color:rgba(232,212,168,.6);opacity:1}
+.db-btn .dtoday{font-size:8px;color:var(--gold)}
+.db-dot{width:4px;height:4px;border-radius:50%;background:transparent;margin-top:2px}
+.db-btn.has-data .db-dot{background:var(--gold)}
+
+/* NAV */
+.nav{display:flex;background:var(--warm);border-bottom:1px solid var(--bd);overflow-x:auto;scrollbar-width:none;position:sticky;top:0;z-index:100}
+.nav::-webkit-scrollbar{display:none}
+.nav button{flex:1;min-width:54px;padding:10px 4px;border:none;background:none;font-family:'Jost',sans-serif;font-size:10px;font-weight:500;color:var(--dust);cursor:pointer;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;transition:all .2s}
+.nav button.active{color:var(--gold);border-bottom-color:var(--gold)}
+
+/* PANELS */
+.panel{display:none;padding:14px 16px}
+.panel.active{display:block}
+.sl{font-size:9.5px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--dust);margin:18px 0 10px 2px;display:flex;align-items:center;gap:8px}
+.sl::after{content:'';flex:1;height:1px;background:var(--bd)}
+
+/* CARDS */
+.card{background:white;border:1px solid var(--bd);border-radius:var(--r);padding:14px;margin-bottom:10px;box-shadow:var(--sh)}
+.card-head{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--bd)}
+.card-ico{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.card-title{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:500;color:var(--ink)}
+.card-sub{font-size:11px;color:var(--dust);margin-top:1px}
+
+/* CHECKLIST */
+.chk{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd);cursor:pointer}
+.chk:first-child{padding-top:0}
+.chk:last-child{border-bottom:none;padding-bottom:0}
+.chk-box{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--bds);background:var(--parchment);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all .15s;font-size:11px;color:transparent}
+.chk.done .chk-box{background:var(--gold);border-color:var(--gold);color:white}
+.chk-name{font-size:13px;color:var(--ink);line-height:1.3}
+.chk.done .chk-name{color:var(--dust);text-decoration:line-through;text-decoration-color:var(--gold-d)}
+.chk-tip{font-size:10.5px;color:var(--dust);margin-top:2px;line-height:1.4}
+.bdg{display:inline-block;font-size:9px;font-weight:500;padding:1px 7px;border-radius:10px;margin-left:5px;vertical-align:middle}
+.bk{background:var(--sage-p);color:var(--sage)}
+.bh{background:var(--terra-p);color:var(--terra)}
+.ba{background:#EEEDFE;color:#534AB7}
+.prog-wrap{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--bd)}
+.prog-bg{flex:1;height:5px;background:var(--gold-p);border-radius:3px;overflow:hidden}
+.prog-fill{height:5px;background:var(--gold);border-radius:3px;transition:width .4s}
+.prog-lbl{font-size:11px;color:var(--dust);min-width:34px;text-align:right}
+
+/* PHOTOS */
+.photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px}
+.photo-slot{aspect-ratio:3/4;border-radius:var(--r);border:1.5px dashed var(--bds);background:var(--gold-p);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;overflow:hidden;position:relative;transition:border-color .2s}
+.photo-slot:active{border-color:var(--gold)}
+.photo-slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ps-lbl{font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--dust);position:relative;z-index:1}
+.ps-ico{font-size:24px;position:relative;z-index:1}
+.photo-slot.has-photo .ps-lbl{position:absolute;bottom:0;left:0;right:0;background:rgba(26,18,8,.55);color:var(--gold-d);padding:6px;text-align:center;font-size:9px;backdrop-filter:blur(3px)}
+.photo-slot.has-photo .ps-ico{display:none}
+.ph-rem{position:absolute;top:6px;right:6px;width:22px;height:22px;background:rgba(26,18,8,.65);color:white;border:none;border-radius:50%;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2}
+.ph-input{display:none}
+.upload-status{font-size:11px;text-align:center;padding:6px;border-radius:var(--rs);margin-top:6px}
+.upload-status.uploading{background:var(--gold-p);color:var(--terra)}
+.upload-status.done{background:var(--sage-p);color:var(--sage)}
+.upload-status.error{background:var(--terra-p);color:var(--terra)}
+
+/* COMPARE STRIP */
+.cmp-strip{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
+.cmp-strip::-webkit-scrollbar{display:none}
+.cmp-item{flex-shrink:0;width:86px}
+.cmp-thumb{width:86px;height:115px;border-radius:var(--rs);overflow:hidden;background:var(--warm);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;color:var(--dust);font-size:20px;position:relative}
+.cmp-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cmp-cap{font-size:9px;color:var(--dust);text-align:center;margin-top:4px;line-height:1.4}
+.cmp-cap strong{color:var(--ink);display:block;font-size:10px}
+
+/* MOOD */
+.mood-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.mood-btn{padding:5px 11px;border-radius:20px;border:1px solid var(--bds);background:var(--parchment);font-size:11px;font-weight:500;color:var(--dust);cursor:pointer;transition:all .15s}
+.mood-btn.on{background:var(--ink);border-color:var(--gold);color:var(--gold-d)}
+
+/* NOTES */
+.nta{width:100%;border:1px solid var(--bd);border-radius:var(--rs);padding:10px 12px;font-family:'Jost',sans-serif;font-size:13px;color:var(--ink);background:var(--parchment);resize:none;min-height:70px;line-height:1.6;outline:none;transition:border-color .2s}
+.nta:focus{border-color:var(--gold)}
+
+/* BUTTONS */
+.btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:12px;border-radius:var(--rs);border:none;font-family:'Jost',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;margin-top:10px;letter-spacing:.02em}
+.btn-dark{background:var(--ink);color:var(--gold-d)}
+.btn-dark:active{background:#2e2010}
+.btn-gold{background:var(--gold-p);color:var(--terra);border:1px solid var(--gold)}
+.btn-gold:active{background:var(--gold-d)}
+
+/* WEEKLY SUMMARY */
+.sum-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:14px}
+.sum-d{background:var(--parchment);border:1px solid var(--bd);border-radius:var(--rs);padding:6px 3px;text-align:center}
+.sum-d.ok{background:var(--gold-p);border-color:var(--gold)}
+.sum-dn{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;color:var(--dust);margin-bottom:1px}
+.sum-dd{font-size:8px;color:var(--dust);opacity:.8;margin-bottom:3px}
+.sum-pct{font-family:'Cormorant Garamond',serif;font-size:15px;color:var(--ink)}
+.sum-d.ok .sum-dn{color:var(--terra)}
+.sum-d.ok .sum-pct{color:var(--gold)}
+
+/* ANALYSIS */
+.an-block{background:linear-gradient(135deg,var(--ink) 0%,#3e2a12 100%);border-radius:var(--r);padding:18px;margin-bottom:12px}
+.an-title{font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--gold-d);margin-bottom:3px}
+.an-sub{font-size:10.5px;color:var(--dust);margin-bottom:14px}
+.insight{display:flex;gap:10px;margin-bottom:9px;background:rgba(196,154,74,.1);border-radius:var(--rs);padding:10px}
+.in-ico{font-size:16px;flex-shrink:0;margin-top:1px}
+.in-txt{font-size:12px;color:var(--gold-d);line-height:1.6}
+.in-txt strong{color:var(--gold);font-weight:500}
+.sc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.sc-card{background:white;border:1px solid var(--bd);border-radius:var(--rs);padding:10px 8px;text-align:center}
+.sc-num{font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--gold);line-height:1;margin-bottom:2px}
+.sc-name{font-size:9.5px;color:var(--dust);line-height:1.3}
+.sc-bar{height:4px;background:var(--gold-p);border-radius:2px;margin-top:5px;overflow:hidden}
+.sc-fill{height:4px;border-radius:2px;background:var(--gold)}
+.trend{display:inline-block;font-size:9px;font-weight:500;padding:1px 7px;border-radius:10px;margin-top:3px}
+.t-up{background:var(--sage-p);color:var(--sage)}
+.t-dn{background:var(--terra-p);color:var(--terra)}
+.t-st{background:var(--gold-p);color:var(--dust)}
+.wk-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.wk-lbl{font-size:11px;font-weight:500;color:var(--ink);width:74px;flex-shrink:0}
+.wk-bars{flex:1}
+.wk-bar-row{display:flex;align-items:center;gap:4px;margin-bottom:3px}
+.wk-wlbl{font-size:9px;color:var(--dust);width:26px}
+.wk-bg{flex:1;height:7px;background:var(--gold-p);border-radius:3px;overflow:hidden}
+.wk-fg{height:7px;border-radius:3px;background:var(--gold)}
+.wk-val{font-size:9px;color:var(--dust);width:16px;text-align:right}
+.hist-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.hist-item{aspect-ratio:3/4;border-radius:var(--rs);overflow:hidden;position:relative;background:var(--warm);border:1px solid var(--bd)}
+.hist-item img{width:100%;height:100%;object-fit:cover}
+.hist-lbl{position:absolute;bottom:0;left:0;right:0;background:rgba(26,18,8,.6);color:var(--gold-d);font-size:8.5px;padding:4px 5px;text-align:center}
+.hist-empty{font-size:11px;color:var(--dust);text-align:center;padding:20px;grid-column:span 3;line-height:1.7}
+
+/* INFO BOX */
+.info-box{border-radius:var(--rs);padding:12px 14px;font-size:11.5px;line-height:1.7;margin-top:8px}
+.info-gold{background:var(--gold-p);color:var(--ink)}
+.info-gold strong{color:var(--terra);font-weight:500}
+.info-sage{background:var(--sage-p);color:var(--ink)}
+.info-dark{background:rgba(26,18,8,.05);color:var(--dust)}
+.mono{font-family:monospace;background:var(--terra-p);color:var(--terra);padding:1px 6px;border-radius:4px;font-size:10.5px}
+
+/* FB CONFIG MODAL */
+.modal{position:fixed;inset:0;background:rgba(26,18,8,.8);z-index:500;display:none;align-items:center;justify-content:center;padding:20px}
+.modal.show{display:flex}
+.modal-box{background:var(--parchment);border-radius:var(--r);padding:22px 18px;width:100%;max-width:380px;border:1px solid var(--bds)}
+.modal-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:500;color:var(--ink);margin-bottom:4px}
+.modal-sub{font-size:11.5px;color:var(--dust);margin-bottom:14px;line-height:1.6}
+.modal-sub a{color:var(--terra)}
+.modal-input{width:100%;padding:10px 12px;border:1px solid var(--bds);border-radius:var(--rs);font-family:'Jost',sans-serif;font-size:12px;color:var(--ink);background:white;margin-bottom:8px;outline:none}
+.modal-input:focus{border-color:var(--gold)}
+.modal-btns{display:flex;gap:8px;margin-top:6px}
+.m-cancel{flex:1;padding:10px;border:1px solid var(--bds);background:white;border-radius:var(--rs);font-family:'Jost',sans-serif;font-size:13px;color:var(--dust);cursor:pointer}
+.m-save{flex:2;padding:10px;border:none;background:var(--ink);border-radius:var(--rs);font-family:'Jost',sans-serif;font-size:13px;color:var(--gold-d);cursor:pointer;font-weight:500}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:var(--gold-d);padding:10px 22px;border-radius:24px;border:1px solid var(--bds);font-size:12px;font-weight:500;z-index:9999;transition:transform .3s;white-space:nowrap;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid var(--gold-d);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:4px}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="sp-logo">Foziya</div>
+  <div class="sp-sub">Skin Journal</div>
+  <div class="sp-ring"></div>
+  <div class="sp-msg" id="sp-msg">Loading...</div>
+</div>
+
+<!-- SETUP WIZARD -->
+<div id="setup">
+  <div class="wz-logo">Welcome to Foziya</div>
+  <div class="wz-sub">Skin Journal · Nazret, Ethiopia</div>
+
+  <div class="wz-step">
+    <div class="wz-card">
+      <div class="wz-num">1</div>
+      <div class="wz-title">Create your free Firebase project</div>
+      <div class="wz-hint">
+        <strong>Follow these steps on your phone or computer:</strong><br>
+        1. Go to <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a><br>
+        2. Sign in with your Google account<br>
+        3. Tap <strong>Create a project</strong> → name it <strong>foziya-skin</strong> → Continue<br>
+        4. Disable Google Analytics → Create project<br>
+        5. When ready, tap the <strong>&lt;/&gt;</strong> Web icon → Register app (name it anything)<br>
+        6. Copy the config values shown — paste them below
+      </div>
+      <div class="wz-title" style="margin-top:4px">Paste your Firebase config</div>
+      <div class="wz-desc">From Firebase Console → Project Settings → Your Apps → Web App</div>
+      <input class="wz-input" id="wz-key" placeholder="apiKey  (e.g. AIzaSy...)">
+      <input class="wz-input" id="wz-pid" placeholder="projectId  (e.g. foziya-skin)">
+      <input class="wz-input" id="wz-sb"  placeholder="storageBucket  (e.g. foziya-skin.appspot.com)">
+      <input class="wz-input" id="wz-aid" placeholder="appId  (e.g. 1:123456:web:abc...)">
+    </div>
+  </div>
+
+  <div class="wz-step">
+    <div class="wz-card">
+      <div class="wz-num">2</div>
+      <div class="wz-title">Enable Firestore &amp; Storage</div>
+      <div class="wz-hint">
+        In your Firebase Console:<br>
+        • Left menu → <strong>Firestore Database</strong> → Create database → <strong>Start in test mode</strong> → Next → Enable<br>
+        • Left menu → <strong>Storage</strong> → Get started → <strong>Start in test mode</strong> → Done
+      </div>
+    </div>
+  </div>
+
+  <button class="wz-btn" onclick="setupConnect()">Connect &amp; Open My Journal</button>
+  <div class="wz-link" onclick="setupSkip()">I'll set up Firebase later — open anyway</div>
+</div>
+
+<!-- INSTALL BANNER -->
+<div id="install-banner">
+  <div class="ib-ico">📲</div>
+  <div class="ib-txt"><strong>Install as app</strong>Works offline · saves permanently · home screen icon</div>
+  <button class="ib-btn" id="ib-install">Install</button>
+  <button class="ib-x" onclick="this.parentNode.classList.remove('show')">✕</button>
+</div>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-row">
+    <div>
+      <div class="hdr-name">Foziya · Skin Journal</div>
+      <div class="hdr-date" id="hdr-date"></div>
+    </div>
+    <div class="hdr-right">
+      <div class="sync-pill off" id="sync-pill">
+        <div class="sync-dot"></div>
+        <span id="sync-lbl">Connecting...</span>
+      </div>
+      <button class="cfg-btn" onclick="showFBModal()">⚙ Firebase</button>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar" id="status-bar">
+  <strong>Storage:</strong> Connecting to Firebase...
+</div>
+
+<div class="day-bar" id="day-bar"></div>
+
+<nav class="nav">
+  <button class="active" onclick="showTab('checklist',this)">Checklist</button>
+  <button onclick="showTab('photos',this)">Photos</button>
+  <button onclick="showTab('skin',this)">Skin Feel</button>
+  <button onclick="showTab('weekly',this)">Weekly</button>
+  <button onclick="showTab('analysis',this)">Analysis</button>
+  <button onclick="showTab('info',this)">Info</button>
+</nav>
+
+<!-- CHECKLIST -->
+<div class="panel active" id="tab-checklist">
+  <div class="sl">Morning routine</div>
+  <div class="card">
+    <div class="card-head"><div class="card-ico" style="background:var(--gold-p)">☀️</div><div><div class="card-title">Morning steps</div><div class="card-sub" id="am-sub">0 of 5 done</div></div></div>
+    <div id="am-list"></div>
+    <div class="prog-wrap"><div class="prog-bg"><div class="prog-fill" id="am-bar" style="width:0%"></div></div><div class="prog-lbl" id="am-pct">0%</div></div>
+  </div>
+  <div class="sl">Evening routine</div>
+  <div class="card">
+    <div class="card-head"><div class="card-ico" style="background:#EEEDFE">🌙</div><div><div class="card-title">Evening steps</div><div class="card-sub" id="pm-sub">0 of 6 done</div></div></div>
+    <div id="pm-list"></div>
+    <div class="prog-wrap"><div class="prog-bg"><div class="prog-fill" id="pm-bar" style="width:0%"></div></div><div class="prog-lbl" id="pm-pct">0%</div></div>
+  </div>
+  <div class="sl">Tonight's treatment</div>
+  <div class="card">
+    <div class="card-head"><div class="card-ico" style="background:var(--terra-p)">🌿</div><div><div class="card-title" id="tn-title"></div><div class="card-sub" id="tn-sub"></div></div></div>
+    <div id="tn-steps"></div>
+  </div>
+  <button class="btn btn-dark" onclick="saveDay()"><span id="save-txt">Save today's progress</span></button>
+</div>
+
+<!-- PHOTOS -->
+<div class="panel" id="tab-photos">
+  <div class="sl">Today's skin photos</div>
+  <div class="card">
+    <div class="card-head"><div class="card-ico" style="background:var(--sage-p)">📸</div><div><div class="card-title">Morning &amp; Evening</div><div class="card-sub" id="photo-sub"></div></div></div>
+    <div class="photo-grid">
+      <div class="photo-slot" id="slot-am" onclick="triggerPhoto('am')">
+        <div class="ps-ico">🌅</div><div class="ps-lbl" id="lbl-am">Morning</div>
+        <input type="file" accept="image/*" class="ph-input" id="inp-am" onchange="handlePhoto('am',this)">
+        <button class="ph-rem" id="rem-am" style="display:none" onclick="removePhoto(event,'am')">✕</button>
+      </div>
+      <div class="photo-slot" id="slot-pm" onclick="triggerPhoto('pm')">
+        <div class="ps-ico">🌙</div><div class="ps-lbl" id="lbl-pm">Evening</div>
+        <input type="file" accept="image/*" class="ph-input" id="inp-pm" onchange="handlePhoto('pm',this)">
+        <button class="ph-rem" id="rem-pm" style="display:none" onclick="removePhoto(event,'pm')">✕</button>
+      </div>
+    </div>
+    <div id="photo-upload-status"></div>
+    <div class="info-box info-dark" style="margin-top:8px;font-size:11px">Photos upload to Firebase Storage — your Google account's free cloud storage. You can see them anytime at console.firebase.google.com → Storage.</div>
+    <button class="btn btn-dark" onclick="saveDay()">Save</button>
+  </div>
+  <div class="sl">This week — side by side</div>
+  <div class="card">
+    <div style="font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--dust);margin-bottom:7px">🌅 Morning</div>
+    <div class="cmp-strip" id="cmp-am"></div>
+    <div style="font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--dust);margin:12px 0 7px">🌙 Evening</div>
+    <div class="cmp-strip" id="cmp-pm"></div>
+  </div>
+</div>
+
+<!-- SKIN FEEL -->
+<div class="panel" id="tab-skin">
+  <div class="sl">How does your skin feel?</div>
+  <div class="card">
+    <div style="font-size:11px;font-weight:500;color:var(--dust);margin-bottom:7px;text-transform:uppercase;letter-spacing:.07em">🌅 Morning</div>
+    <div class="mood-row" id="mood-am"></div>
+    <div style="border-top:1px solid var(--bd);margin-top:14px;padding-top:14px">
+      <div style="font-size:11px;font-weight:500;color:var(--dust);margin-bottom:7px;text-transform:uppercase;letter-spacing:.07em">🌙 Evening</div>
+      <div class="mood-row" id="mood-pm"></div>
+    </div>
+  </div>
+  <div class="sl">Rate concerns today (1–5)</div>
+  <div class="card" id="rating-card"></div>
+  <div class="sl">Daily notes</div>
+  <div class="card"><textarea class="nta" id="day-notes" placeholder="How did your skin feel today? Any reactions, improvements, or things to remember..."></textarea></div>
+  <button class="btn btn-dark" onclick="saveDay()">Save skin log</button>
+</div>
+
+<!-- WEEKLY -->
+<div class="panel" id="tab-weekly">
+  <div class="sl">This week at a glance</div>
+  <div class="sum-grid" id="week-sum"></div>
+  <div class="sl">Daily averages this week</div>
+  <div id="week-avgs"></div>
+  <div class="sl">Weekly reflection</div>
+  <div class="card">
+    <textarea class="nta" id="week-notes" placeholder="Weekly reflection — what improved, what to adjust, how you feel about your skin this week..."></textarea>
+    <button class="btn btn-dark" onclick="saveWeekNotes()">Save weekly notes</button>
+  </div>
+</div>
+
+<!-- ANALYSIS -->
+<div class="panel" id="tab-analysis">
+  <div class="sl">Skin progress report</div>
+  <div class="an-block">
+    <div class="an-title">Your skin progress</div>
+    <div class="an-sub" id="an-sub">Based on all your saved data</div>
+    <div id="an-insights"></div>
+  </div>
+  <div class="sl">Concern scores — all weeks</div>
+  <div class="sc-grid" id="sc-grid"></div>
+  <div class="sl">Week-by-week comparison</div>
+  <div class="card"><div style="font-size:11px;color:var(--dust);margin-bottom:10px;line-height:1.6">Each bar = your average score for that concern that week. Watch the bars grow as you improve.</div><div id="wk-rows"></div></div>
+  <div class="sl">Morning photos — all weeks</div>
+  <div class="card"><div style="font-size:11px;color:var(--dust);margin-bottom:10px;line-height:1.6">Morning photos ordered oldest to newest. Scroll to see how your skin changes over time.</div><div class="hist-grid" id="photo-hist"></div></div>
+  <div class="sl">All weekly notes</div>
+  <div id="all-notes"></div>
+</div>
+
+<!-- INFO -->
+<div class="panel" id="tab-info">
+  <div class="sl">Where your data is saved</div>
+  <div class="card">
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd)">
+      <div style="font-size:18px;flex-shrink:0">🔥</div>
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--ink);margin-bottom:3px">Firebase Firestore — daily data</div>
+        <div class="mono">Collection: foziya_days</div>
+        <div style="font-size:11px;color:var(--dust);margin-top:4px;line-height:1.6">Every checklist tick, rating, mood, and note saves here. Each day is one document. View at console.firebase.google.com → Firestore → foziya_days.</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd)">
+      <div style="font-size:18px;flex-shrink:0">🖼️</div>
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--ink);margin-bottom:3px">Firebase Storage — photos</div>
+        <div class="mono">Folder: foziya/photos/</div>
+        <div style="font-size:11px;color:var(--dust);margin-top:4px;line-height:1.6">Every photo saves to Firebase Storage. View at console.firebase.google.com → Storage → foziya folder. Photos named by date and time.</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0">
+      <div style="font-size:18px;flex-shrink:0">📅</div>
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--ink);margin-bottom:3px">Firebase Firestore — weekly notes</div>
+        <div class="mono">Collection: foziya_weeks</div>
+        <div style="font-size:11px;color:var(--dust);margin-top:4px;line-height:1.6">Weekly reflections save here. Document ID is the year and week number, e.g. <span class="mono">2025_W24</span>.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sl">Install this app on your Android</div>
+  <div class="card">
+    <div class="info-box info-gold">
+      <strong>📲 Method 1 — Install banner:</strong><br>
+      If you see the install banner at the top of this page, tap Install. Done.<br><br>
+      <strong>📲 Method 2 — Chrome menu:</strong><br>
+      Tap the three-dot ⋮ menu at the top right of Chrome → tap "Add to Home screen" → tap Add.<br><br>
+      The app icon appears on your home screen. Tap it to open without browser — works offline too.
+    </div>
+    <button class="btn btn-gold" onclick="triggerInstall()">📲 Install on home screen</button>
+  </div>
+
+  <div class="sl">Firebase free limits</div>
+  <div class="card">
+    <div class="info-box info-sage">
+      Firebase free tier (Spark plan) gives you:<br>
+      • <strong>1 GB</strong> Storage for photos<br>
+      • <strong>50,000</strong> Firestore reads per day<br>
+      • <strong>20,000</strong> Firestore writes per day<br>
+      • <strong>10 GB</strong> bandwidth per month<br><br>
+      This is far more than enough for personal daily skincare tracking. You will never need to pay.
+    </div>
+  </div>
+
+  <div class="sl">Firebase settings</div>
+  <div class="card">
+    <div style="font-size:12px;color:var(--dust);margin-bottom:10px" id="fb-info-txt">Not connected</div>
+    <button class="btn btn-gold" onclick="showFBModal()">⚙ Update Firebase config</button>
+  </div>
+
+  <div class="sl">Export backup</div>
+  <div class="card">
+    <div style="font-size:12px;color:var(--ink);margin-bottom:4px;line-height:1.6">Your data is in Firebase — but you can also download a local backup copy any time.</div>
+    <button class="btn btn-gold" onclick="exportBackup()">⬇ Download local backup</button>
+  </div>
+</div>
+
+<!-- FIREBASE MODAL -->
+<div class="modal" id="fb-modal">
+  <div class="modal-box">
+    <div class="modal-title">Firebase Config</div>
+    <div class="modal-sub">Firebase Console → Project Settings → Your Apps → Web App → copy the config.<br><a href="https://console.firebase.google.com" target="_blank">Open Firebase Console →</a></div>
+    <input class="modal-input" id="m-key" placeholder="apiKey">
+    <input class="modal-input" id="m-pid" placeholder="projectId">
+    <input class="modal-input" id="m-sb"  placeholder="storageBucket">
+    <input class="modal-input" id="m-aid" placeholder="appId">
+    <div class="modal-btns">
+      <button class="m-cancel" onclick="document.getElementById('fb-modal').classList.remove('show')">Cancel</button>
+      <button class="m-save" onclick="saveFBModal()">Save &amp; Connect</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+// ═══ DATA ════════════════════════════════════════════════════
+const AM=[
+  {id:'am_rice', name:'Rice water rinse',          tip:'After cleanse — pat, 60 sec, cool rinse.',          badge:'homemade',bc:'bh'},
+  {id:'am_honey',name:'Honey soothing layer',       tip:'Thin honey, 3 min light rinse, or mix into cream.', badge:'homemade',bc:'bh'},
+  {id:'am_anua', name:'Anua Niacinamide Serum',     tip:'2–3 drops pressed gently on damp skin.',            badge:'K-beauty', bc:'bk'},
+  {id:'am_txa',  name:'Medicube TXA Cream',          tip:'Pea-size. Focus on dark spots and cheeks.',         badge:'K-beauty', bc:'bk'},
+  {id:'am_spf',  name:'Skin1004 Sunscreen SPF 50+', tip:'Always last step. Reapply after lunch outdoors.',   badge:'K-beauty', bc:'bk'},
+];
+const PM=[
+  {id:'pm_cl',  name:'Double cleanse',              tip:'Oil cleanser first, then water-based cleanser.',    badge:null},
+  {id:'pm_rice',name:'Rice water rinse',             tip:'After cleanse — preps skin for actives.',          badge:'homemade',bc:'bh'},
+  {id:'pm_anua',name:'Anua Niacinamide Serum',       tip:'Every night — calms and preps skin.',              badge:'K-beauty', bc:'bk'},
+  {id:'pm_act', name:'Active treatment',              tip:"See tonight's card below.",                         badge:'see card', bc:'ba'},
+  {id:'pm_mel', name:'MelaToning Cream',              tip:'Tue·Thu·Sat·Sun only — skip on retinal nights.',   badge:'K-beauty', bc:'bk'},
+  {id:'pm_seal',name:'Honey seal / fenugreek water', tip:'Final step every night. Buffer on retinal nights.', badge:'homemade',bc:'bh'},
+];
+const CONCERNS=[
+  {id:'darkspots',name:'Dark spots'},
+  {id:'hydration',name:'Hydration'},
+  {id:'barrier',  name:'Barrier'},
+  {id:'tone',     name:'Even tone'},
+  {id:'texture',  name:'Texture'},
+  {id:'oiliness', name:'Oiliness'},
+];
+const MOODS=['Calm','Oily','Dry','Tight','Glowing','Sensitive','Dull','Balanced','Irritated','Plump'];
+const TONIGHT={
+  Mon:{title:'Retinal night 🔬',sub:'Seoul 1988 Retinal — rice-grain only. Skip MelaToning.',steps:['Rice-grain of retinal serum only','Skip MelaToning cream tonight','Seal with diluted honey after','No other actives tonight']},
+  Tue:{title:'Qasil mask night 🌿',sub:'Brightening + oil-control. No retinal.',steps:['1 tsp qasil + ½ tsp honey + water to paste','Apply to damp face, leave 10 min','Remove gently with warm water','Honey seal to finish']},
+  Wed:{title:'Retinal night 🔬',sub:'Seoul 1988 Retinal — rice-grain only. Skip MelaToning.',steps:['Rice-grain of retinal serum only','Skip MelaToning cream tonight','Seal with diluted honey after','No other actives tonight']},
+  Thu:{title:'Fenugreek repair mask 🌾',sub:'Barrier repair + dark spot fading.',steps:['Soak 1 tsp fenugreek in warm water 10 min','Mix with 1 tsp honey + 1 tsp yogurt','Apply evenly, leave 15 min','Cool water rinse, then honey seal']},
+  Fri:{title:'Retinal night 🔬',sub:'Seoul 1988 Retinal — rice-grain only. Skip MelaToning.',steps:['Rice-grain of retinal serum only','Skip MelaToning cream tonight','Seal with diluted honey after','No other actives tonight']},
+  Sat:{title:'Qasil mask night 🌿',sub:'Brightening + oil-control. No retinal.',steps:['1 tsp qasil + ½ tsp honey + water to paste','Apply to damp face, leave 10 min','Remove gently with warm water','Honey seal to finish']},
+  Sun:{title:'Coffee + rice scrub ☕',sub:'Texture + circulation. Full rest night — no actives.',steps:['½ tsp coffee + ½ tsp rice + 1 tsp honey','Gentle circles 1 min, leave 5 min, rinse','Honey seal only tonight','No retinal, no MelaToning tonight']},
+};
+const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+// ═══ STATE ════════════════════════════════════════════════════
+let DB=null, STOR=null, fbReady=false;
+let appData={};   // dateKey → day object (cached from Firestore)
+let weekNotesCache={};
+let currentDay=todayKey();
+let deferredInstall=null;
+
+// ═══ DATE ════════════════════════════════════════════════════
+function todayKey(){return fmtKey(new Date());}
+function fmtKey(d){return `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;}
+function p2(n){return String(n).padStart(2,'0');}
+function keyToDate(k){const[y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d);}
+function keyToDOW(k){return['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][keyToDate(k).getDay()];}
+function keyFull(k){return keyToDate(k).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
+function keyShort(k){const d=keyToDate(k);return `${d.getDate()} ${d.toLocaleDateString('en-GB',{month:'short'})}`;}
+function weekKey(k){
+  const d=k?keyToDate(k):new Date();
+  const j=new Date(d.getFullYear(),0,1);
+  return `${d.getFullYear()}_W${p2(Math.ceil(((d-j)/86400000+j.getDay()+1)/7))}`;
+}
+function weekDays(k){
+  const d=keyToDate(k||todayKey());
+  const dow=d.getDay();
+  const mon=new Date(d);mon.setDate(d.getDate()+(dow===0?-6:1-dow));
+  return Array.from({length:7},(_,i)=>{const x=new Date(mon);x.setDate(mon.getDate()+i);return fmtKey(x);});
+}
+function dayName(k){const dow=keyToDate(k).getDay();return DAYS[dow===0?6:dow-1];}
+function allWeekKeys(){return[...new Set(Object.keys(appData).map(k=>weekKey(k)))].sort();}
+
+// ═══ DATA ════════════════════════════════════════════════════
+function getDayData(k){
+  if(!appData[k])appData[k]={dateKey:k,am:{},pm:{},moods_am:[],moods_pm:[],ratings:{},notes:'',photos:{}};
+  return appData[k];
+}
+
+// ═══ FIREBASE ════════════════════════════════════════════════
+function initFB(cfg){
+  try{
+    if(firebase.apps.length)firebase.app().delete().catch(()=>{});
+    firebase.initializeApp(cfg);
+    DB=firebase.firestore();
+    STOR=firebase.storage();
+    fbReady=true;
+    updateSyncUI(true,cfg.projectId);
+    return true;
+  }catch(e){
+    fbReady=false;
+    updateSyncUI(false);
+    return false;
+  }
+}
+function updateSyncUI(online,pid=''){
+  const pill=document.getElementById('sync-pill');
+  const lbl=document.getElementById('sync-lbl');
+  const bar=document.getElementById('status-bar');
+  const info=document.getElementById('fb-info-txt');
+  if(online){
+    pill.className='sync-pill on';
+    lbl.textContent='Firebase ✓';
+    bar.innerHTML=`<strong>Storage:</strong> All data saves to your Firebase project (<strong style="color:var(--sage)">${pid}</strong>) — accessible from any device`;
+    if(info)info.textContent=`Connected to: ${pid}`;
+  }else{
+    pill.className='sync-pill off';
+    lbl.textContent='No Firebase';
+    bar.innerHTML=`<strong>Storage:</strong> Not connected to Firebase — tap ⚙ Firebase to connect. Data will save once connected.`;
+    if(info)info.textContent='Not connected — tap Update Firebase config below';
+  }
+}
+function getSavedCfg(){try{return JSON.parse(localStorage.getItem('fz_fb')||'null');}catch{return null;}}
+function showFBModal(){
+  const c=getSavedCfg()||{};
+  document.getElementById('m-key').value=c.apiKey||'';
+  document.getElementById('m-pid').value=c.projectId||'';
+  document.getElementById('m-sb').value=c.storageBucket||'';
+  document.getElementById('m-aid').value=c.appId||'';
+  document.getElementById('fb-modal').classList.add('show');
+}
+async function saveFBModal(){
+  const cfg={
+    apiKey:document.getElementById('m-key').value.trim(),
+    projectId:document.getElementById('m-pid').value.trim(),
+    storageBucket:document.getElementById('m-sb').value.trim(),
+    appId:document.getElementById('m-aid').value.trim(),
+    authDomain:document.getElementById('m-pid').value.trim()+'.firebaseapp.com',
+  };
+  if(!cfg.apiKey||!cfg.projectId){toast('Fill in at least apiKey and projectId');return;}
+  localStorage.setItem('fz_fb',JSON.stringify(cfg));
+  localStorage.setItem('fz_started','1');
+  const ok=initFB(cfg);
+  document.getElementById('fb-modal').classList.remove('show');
+  if(ok){toast('✓ Firebase connected');await loadFromFirebase();}
+  else toast('⚠ Could not connect — check your config values');
+}
+
+// ═══ FIREBASE DATA OPS ════════════════════════════════════════
+async function saveDayToFB(dk){
+  if(!fbReady||!DB)return false;
+  const dd=getDayData(dk);
+  const docId=`${weekKey(dk)}_${dk}`;
+  // Save without photo data — photos stored separately in Storage
+  const docData={
+    dateKey:dk,dayName:keyToDOW(dk),week:weekKey(dk),
+    displayDate:keyFull(dk),
+    am:dd.am,pm:dd.pm,
+    moods_am:dd.moods_am||[],moods_pm:dd.moods_pm||[],
+    ratings:dd.ratings||{},notes:dd.notes||'',
+    photoRefs:dd.photoRefs||{},  // Firebase Storage paths, not base64
+    updatedAt:new Date().toISOString(),
+  };
+  try{await DB.collection('foziya_days').doc(docId).set(docData,{merge:true});return true;}
+  catch(e){console.error('FB save error:',e);return false;}
+}
+async function saveWeekNoteToFB(wk,txt){
+  if(!fbReady||!DB)return;
+  await DB.collection('foziya_weeks').doc(wk).set({notes:txt,updatedAt:new Date().toISOString()},{merge:true});
+}
+async function uploadPhotoToFB(dk,type,file){
+  if(!fbReady||!STOR)return null;
+  const path=`foziya/photos/${dk}_${type}_${Date.now()}.jpg`;
+  const ref=STOR.ref(path);
+  const snap=await ref.put(file);
+  const url=await snap.ref.getDownloadURL();
+  return{path,url};
+}
+async function loadFromFirebase(){
+  if(!fbReady||!DB)return;
+  try{
+    // Load last 60 days
+    const since=new Date();since.setDate(since.getDate()-60);
+    const snap=await DB.collection('foziya_days').orderBy('dateKey','desc').limit(60).get();
+    snap.forEach(doc=>{
+      const d=doc.data();
+      if(d.dateKey){
+        appData[d.dateKey]=d;
+        // Restore photo URLs from refs
+        if(d.photoRefs){
+          if(!appData[d.dateKey].photos)appData[d.dateKey].photos={};
+          if(d.photoRefs.am_url)appData[d.dateKey].photos.am=d.photoRefs.am_url;
+          if(d.photoRefs.pm_url)appData[d.dateKey].photos.pm=d.photoRefs.pm_url;
+        }
+      }
+    });
+    // Load week notes
+    const wsnap=await DB.collection('foziya_weeks').get();
+    wsnap.forEach(doc=>{weekNotesCache[doc.id]=doc.data().notes||'';});
+    buildDayBar();renderAll();
+    toast('✓ Data loaded from Firebase');
+  }catch(e){console.error('Load error:',e);toast('Could not load data — check Firestore is enabled');}
+}
+
+// ═══ SETUP WIZARD ════════════════════════════════════════════
+function setupConnect(){
+  const cfg={
+    apiKey:document.getElementById('wz-key').value.trim(),
+    projectId:document.getElementById('wz-pid').value.trim(),
+    storageBucket:document.getElementById('wz-sb').value.trim(),
+    appId:document.getElementById('wz-aid').value.trim(),
+    authDomain:document.getElementById('wz-pid').value.trim()+'.firebaseapp.com',
+  };
+  if(!cfg.apiKey||!cfg.projectId){toast('Please fill in at least apiKey and projectId');return;}
+  localStorage.setItem('fz_fb',JSON.stringify(cfg));
+  localStorage.setItem('fz_started','1');
+  document.getElementById('setup').classList.remove('show');
+  openApp(cfg);
+}
+function setupSkip(){
+  localStorage.setItem('fz_started','1');
+  document.getElementById('setup').classList.remove('show');
+  openApp(null);
+}
+
+// ═══ PWA INSTALL ══════════════════════════════════════════════
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredInstall=e;
+  document.getElementById('install-banner').classList.add('show');
+  document.getElementById('ib-install').onclick=triggerInstall;
+});
+function triggerInstall(){
+  if(deferredInstall){
+    deferredInstall.prompt();
+    deferredInstall.userChoice.then(r=>{
+      if(r.outcome==='accepted')toast('✓ App installed on your home screen!');
+      deferredInstall=null;
+      document.getElementById('install-banner').classList.remove('show');
+    });
+  }else{
+    toast('Open Chrome menu ⋮ → Add to Home screen');
+  }
+}
+
+// ═══ TOAST ════════════════════════════════════════════════════
+function toast(msg,dur=2600){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),dur);
+}
+
+// ═══ DAY SELECTOR ════════════════════════════════════════════
+function buildDayBar(){
+  const el=document.getElementById('day-bar');el.innerHTML='';
+  weekDays(currentDay).forEach(dk=>{
+    const dd=getDayData(dk);
+    const hasData=Object.values(dd.am||{}).some(v=>v)||Object.values(dd.pm||{}).some(v=>v);
+    const isToday=dk===todayKey();
+    const d=keyToDate(dk);
+    const dn=DAYS[d.getDay()===0?6:d.getDay()-1];
+    const btn=document.createElement('button');
+    btn.className='db-btn'+(dk===currentDay?' active':'')+(hasData?' has-data':'');
+    btn.innerHTML=`<span class="dn">${dn}</span><span class="dd">${d.getDate()} ${d.toLocaleDateString('en-GB',{month:'short'})}</span>${isToday?'<span class="dtoday">today</span>':''}<div class="db-dot"></div>`;
+    btn.onclick=()=>{currentDay=dk;buildDayBar();renderAll();};
+    el.appendChild(btn);
+  });
+}
+
+// ═══ RENDER ══════════════════════════════════════════════════
+function renderAll(){renderChecklist();renderTonightCard();renderPhotos();renderSkinFeel();renderWeekly();}
+
+// CHECKLIST
+function renderChecklist(){
+  const dd=getDayData(currentDay);
+  buildChkList('am-list',AM,dd.am,'am');
+  buildChkList('pm-list',PM,dd.pm,'pm');
+  updateProg();
+}
+function buildChkList(cid,steps,state,pfx){
+  const el=document.getElementById(cid);el.innerHTML='';
+  steps.forEach(s=>{
+    const done=!!state[s.id];
+    const div=document.createElement('div');
+    div.className='chk'+(done?' done':'');
+    div.onclick=()=>toggleChk(s.id,pfx,div);
+    const badge=s.badge?`<span class="bdg ${s.bc}">${s.badge}</span>`:'';
+    div.innerHTML=`<div class="chk-box">${done?'✓':''}</div><div><div class="chk-name">${s.name}${badge}</div><div class="chk-tip">${s.tip}</div></div>`;
+    el.appendChild(div);
+  });
+}
+function toggleChk(sid,pfx,el){
+  const dd=getDayData(currentDay);
+  const sec=pfx==='am'?dd.am:dd.pm;
+  sec[sid]=!sec[sid];
+  el.classList.toggle('done');
+  el.querySelector('.chk-box').textContent=sec[sid]?'✓':'';
+  updateProg();
+  // Auto-save to Firebase on each tick
+  saveDayToFB(currentDay);
+  buildDayBar();
+}
+function updateProg(){
+  const dd=getDayData(currentDay);
+  const aD=AM.filter(s=>dd.am[s.id]).length;
+  const pD=PM.filter(s=>dd.pm[s.id]).length;
+  const aP=Math.round(aD/AM.length*100);
+  const pP=Math.round(pD/PM.length*100);
+  document.getElementById('am-bar').style.width=aP+'%';
+  document.getElementById('am-pct').textContent=aP+'%';
+  document.getElementById('am-sub').textContent=`${aD} of ${AM.length} done`;
+  document.getElementById('pm-bar').style.width=pP+'%';
+  document.getElementById('pm-pct').textContent=pP+'%';
+  document.getElementById('pm-sub').textContent=`${pD} of ${PM.length} done`;
+}
+
+// TONIGHT
+function renderTonightCard(){
+  const t=TONIGHT[keyToDOW(currentDay)];
+  document.getElementById('tn-title').textContent=t.title;
+  document.getElementById('tn-sub').textContent=t.sub;
+  const el=document.getElementById('tn-steps');el.innerHTML='';
+  t.steps.forEach((s,i)=>{
+    const r=document.createElement('div');r.className='chk';r.style.cursor='default';
+    r.innerHTML=`<div class="chk-box" style="background:var(--terra-p);border-color:var(--terra);color:var(--terra);font-size:10px">${i+1}</div><div><div class="chk-name">${s}</div></div>`;
+    el.appendChild(r);
+  });
+}
+
+// PHOTOS
+function renderPhotos(){
+  document.getElementById('photo-sub').textContent=keyFull(currentDay);
+  const dd=getDayData(currentDay);
+  ['am','pm'].forEach(t=>{
+    const slot=document.getElementById(`slot-${t}`);
+    const lbl=document.getElementById(`lbl-${t}`);
+    const rem=document.getElementById(`rem-${t}`);
+    const src=dd.photos&&dd.photos[t];
+    if(src){
+      slot.classList.add('has-photo');
+      let img=slot.querySelector('img');
+      if(!img){img=document.createElement('img');slot.appendChild(img);}
+      img.src=src;
+      lbl.textContent=(t==='am'?'🌅 ':'🌙 ')+keyShort(currentDay);
+      rem.style.display='flex';
+    }else{
+      slot.classList.remove('has-photo');
+      const img=slot.querySelector('img');if(img)img.remove();
+      lbl.textContent=t==='am'?'Morning':'Evening';
+      rem.style.display='none';
+    }
+  });
+  renderPhotoCompare();
+}
+function triggerPhoto(t){document.getElementById(`inp-${t}`).click();}
+function handlePhoto(t,input){
+  const file=input.files[0];if(!file)return;
+  const statusEl=document.getElementById('photo-upload-status');
+  statusEl.className='upload-status uploading';
+  statusEl.textContent='⏳ Uploading photo to Firebase...';
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    const dd=getDayData(currentDay);
+    if(!dd.photos)dd.photos={};
+    dd.photos[t]=e.target.result; // preview immediately
+    renderPhotos();
+    // Upload to Firebase Storage
+    if(fbReady){
+      try{
+        const result=await uploadPhotoToFB(currentDay,t,file);
+        if(result){
+          if(!dd.photoRefs)dd.photoRefs={};
+          dd.photoRefs[`${t}_path`]=result.path;
+          dd.photoRefs[`${t}_url`]=result.url;
+          dd.photos[t]=result.url; // use URL instead of base64
+          await saveDayToFB(currentDay);
+          statusEl.className='upload-status done';
+          statusEl.textContent='✓ Photo saved to Firebase Storage';
+          setTimeout(()=>statusEl.textContent='',3000);
+        }
+      }catch(e){
+        statusEl.className='upload-status error';
+        statusEl.textContent='⚠ Upload failed — check Firebase Storage is enabled';
+      }
+    }else{
+      statusEl.className='upload-status error';
+      statusEl.textContent='⚠ Connect Firebase first to save photos';
+    }
+    buildDayBar();
+  };
+  reader.readAsDataURL(file);
+}
+function removePhoto(e,t){
+  e.stopPropagation();
+  const dd=getDayData(currentDay);
+  if(dd.photos)delete dd.photos[t];
+  if(dd.photoRefs){delete dd.photoRefs[`${t}_path`];delete dd.photoRefs[`${t}_url`];}
+  saveDayToFB(currentDay);renderPhotos();toast('Photo removed');
+}
+function renderPhotoCompare(){
+  ['am','pm'].forEach(t=>{
+    const strip=document.getElementById(`cmp-${t}`);strip.innerHTML='';
+    weekDays(currentDay).forEach(dk=>{
+      const dd=getDayData(dk);
+      const src=dd.photos&&dd.photos[t];
+      const item=document.createElement('div');item.className='cmp-item';
+      const thumb=document.createElement('div');thumb.className='cmp-thumb';
+      if(src){const img=document.createElement('img');img.src=src;thumb.appendChild(img);}
+      else thumb.textContent='📷';
+      const cap=document.createElement('div');cap.className='cmp-cap';
+      const d=keyToDate(dk);
+      cap.innerHTML=`<strong>${dayName(dk)}</strong>${d.getDate()} ${d.toLocaleDateString('en-GB',{month:'short'})}`;
+      item.appendChild(thumb);item.appendChild(cap);strip.appendChild(item);
+    });
+  });
+}
+
+// SKIN FEEL
+function renderSkinFeel(){
+  const dd=getDayData(currentDay);
+  ['am','pm'].forEach(t=>{
+    const el=document.getElementById(`mood-${t}`);el.innerHTML='';
+    MOODS.forEach(m=>{
+      const arr=t==='am'?(dd.moods_am||[]):(dd.moods_pm||[]);
+      const btn=document.createElement('button');
+      btn.className='mood-btn'+(arr.includes(m)?' on':'');
+      btn.textContent=m;
+      btn.onclick=()=>toggleMood(m,t,btn);
+      el.appendChild(btn);
+    });
+  });
+  renderRatings();
+  document.getElementById('day-notes').value=getDayData(currentDay).notes||'';
+}
+function toggleMood(mood,time,btn){
+  const dd=getDayData(currentDay);
+  const arr=time==='am'?dd.moods_am:dd.moods_pm;
+  const i=arr.indexOf(mood);
+  if(i>-1)arr.splice(i,1);else arr.push(mood);
+  btn.classList.toggle('on');
+}
+function renderRatings(){
+  const dd=getDayData(currentDay);
+  const el=document.getElementById('rating-card');
+  el.innerHTML='<div style="font-size:11px;color:var(--dust);margin-bottom:10px">1 = very poor &nbsp;·&nbsp; 3 = okay &nbsp;·&nbsp; 5 = great</div>';
+  CONCERNS.forEach(c=>{
+    const val=dd.ratings[c.id]||0;
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:10px';
+    let h=`<div style="width:80px;font-size:12px;font-weight:500;color:var(--ink)">${c.name}</div><div style="display:flex;gap:5px">`;
+    for(let i=1;i<=5;i++){
+      h+=`<button onclick="setRating('${c.id}',${i})" style="width:28px;height:28px;border-radius:50%;border:1px solid ${val>=i?'var(--gold)':'var(--bds)'};background:${val>=i?'var(--gold-p)':'var(--parchment)'};font-size:11px;font-weight:500;color:${val>=i?'var(--terra)':'var(--dust)'};cursor:pointer">${i}</button>`;
+    }
+    h+='</div>';row.innerHTML=h;el.appendChild(row);
+  });
+}
+function setRating(cid,val){
+  getDayData(currentDay).ratings[cid]=val;
+  renderRatings();
+}
+
+// WEEKLY
+function renderWeekly(){
+  const wds=weekDays(currentDay);
+  const sumEl=document.getElementById('week-sum');sumEl.innerHTML='';
+  wds.forEach(dk=>{
+    const dd=getDayData(dk);
+    const done=AM.filter(s=>dd.am[s.id]).length+PM.filter(s=>dd.pm[s.id]).length;
+    const pct=Math.round(done/(AM.length+PM.length)*100);
+    const d=keyToDate(dk);
+    const el=document.createElement('div');el.className='sum-d'+(pct>=80?' ok':'');
+    el.innerHTML=`<div class="sum-dn">${dayName(dk)}</div><div class="sum-dd">${d.getDate()} ${d.toLocaleDateString('en-GB',{month:'short'})}</div><div class="sum-pct">${pct>0?pct+'%':'—'}</div>`;
+    sumEl.appendChild(el);
+  });
+  const avgEl=document.getElementById('week-avgs');avgEl.innerHTML='';
+  CONCERNS.forEach(c=>{
+    const vals=wds.map(dk=>getDayData(dk).ratings[c.id]||0).filter(v=>v>0);
+    const avg=vals.length?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1):'—';
+    const pct=vals.length?Math.round(parseFloat(avg)/5*100):0;
+    const card=document.createElement('div');card.className='card';card.style.marginBottom='8px';
+    card.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:13px;font-weight:500;color:var(--ink)">${c.name}</span><span style="font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--gold)">${avg}</span></div><div class="prog-bg"><div class="prog-fill" style="width:${pct}%"></div></div>`;
+    avgEl.appendChild(card);
+  });
+  const wk=weekKey(currentDay);
+  document.getElementById('week-notes').value=weekNotesCache[wk]||'';
+}
+async function saveWeekNotes(){
+  const wk=weekKey(currentDay);
+  const txt=document.getElementById('week-notes').value;
+  weekNotesCache[wk]=txt;
+  if(fbReady){
+    await saveWeekNoteToFB(wk,txt);
+    toast('✓ Weekly notes saved to Firebase');
+  }else toast('Connect Firebase to save notes');
+}
+
+// ANALYSIS
+function renderAnalysis(){
+  const allWks=allWeekKeys();
+  document.getElementById('an-sub').textContent=allWks.length>0
+    ?`${allWks.length} week${allWks.length>1?'s':''} of data · ${allWks[0].replace('_',' ')} → ${allWks[allWks.length-1].replace('_',' ')}`
+    :'No data yet — rate your skin daily in the Skin Feel tab';
+  const wkAvgs={};
+  allWks.forEach(wk=>{
+    wkAvgs[wk]={};
+    CONCERNS.forEach(c=>{
+      const vals=Object.keys(appData).filter(k=>weekKey(k)===wk).map(k=>appData[k].ratings&&appData[k].ratings[c.id]||0).filter(v=>v>0);
+      wkAvgs[wk][c.id]=vals.length?(vals.reduce((a,b)=>a+b,0)/vals.length):0;
+    });
+  });
+  const overall={};
+  CONCERNS.forEach(c=>{
+    const v=allWks.map(w=>wkAvgs[w][c.id]).filter(v=>v>0);
+    overall[c.id]=v.length?(v.reduce((a,b)=>a+b,0)/v.length):0;
+  });
+  const trends={};
+  if(allWks.length>=2){
+    const h=Math.floor(allWks.length/2);
+    CONCERNS.forEach(c=>{
+      const e=allWks.slice(0,h).map(w=>wkAvgs[w][c.id]).filter(v=>v>0);
+      const l=allWks.slice(h).map(w=>wkAvgs[w][c.id]).filter(v=>v>0);
+      const ea=e.length?e.reduce((a,b)=>a+b,0)/e.length:0;
+      const la=l.length?l.reduce((a,b)=>a+b,0)/l.length:0;
+      trends[c.id]=la-ea;
+    });
+  }
+  const ins=document.getElementById('an-insights');ins.innerHTML='';
+  if(allWks.length===0){
+    ins.innerHTML='<div class="insight"><div class="in-ico">💭</div><div class="in-txt">Start rating your skin each day in the Skin Feel tab. After your first full week, this section will show real progress with trend analysis.</div></div>';
+  }else{
+    const strong=CONCERNS.filter(c=>overall[c.id]>=4);
+    const improving=CONCERNS.filter(c=>(trends[c.id]||0)>0.4);
+    const watch=CONCERNS.filter(c=>(trends[c.id]||0)<-0.3);
+    const early=CONCERNS.filter(c=>overall[c.id]>0&&overall[c.id]<2.5);
+    if(strong.length) ins.innerHTML+=`<div class="insight"><div class="in-ico">✨</div><div class="in-txt"><strong>Performing well:</strong> ${strong.map(c=>c.name).join(', ')}. Routine is working here — stay consistent.</div></div>`;
+    if(improving.length) ins.innerHTML+=`<div class="insight"><div class="in-ico">📈</div><div class="in-txt"><strong>Improving week over week:</strong> ${improving.map(c=>c.name).join(', ')}. Real visible progress — your patience is showing results.</div></div>`;
+    if(watch.length) ins.innerHTML+=`<div class="insight"><div class="in-ico">🔍</div><div class="in-txt"><strong>Needs attention:</strong> ${watch.map(c=>c.name).join(', ')}. Scores dropped. Check if steps were skipped or if a product is causing reaction.</div></div>`;
+    if(early.length) ins.innerHTML+=`<div class="insight"><div class="in-ico">🌱</div><div class="in-txt"><strong>Still early stage:</strong> ${early.map(c=>c.name).join(', ')}. Dark spots and barrier repair show visible change at week 4–6 with daily consistency.</div></div>`;
+    const active=Object.keys(appData).filter(k=>k.length===10&&(Object.values(appData[k].am||{}).some(v=>v)||Object.values(appData[k].pm||{}).some(v=>v))).length;
+    const total=Object.keys(appData).filter(k=>k.length===10).length;
+    if(total>0){
+      const pct=Math.round(active/total*100);
+      ins.innerHTML+=`<div class="insight"><div class="in-ico">📅</div><div class="in-txt"><strong>Consistency:</strong> ${active}/${total} tracked days completed (${pct}%). ${pct>=80?'Excellent — this discipline is why results are showing.':pct>=60?'Good — push toward daily for faster results.':'Aim for at least 6 of 7 days each week.'}</div></div>`;
+    }
+  }
+  const sg=document.getElementById('sc-grid');sg.innerHTML='';
+  CONCERNS.forEach(c=>{
+    const avg=overall[c.id];const pct=Math.round(avg/5*100);
+    const tr=trends[c.id]||0;
+    const tb=allWks.length>=2?(tr>0.3?'<div class="trend t-up">↑ improving</div>':tr<-0.3?'<div class="trend t-dn">↓ watch</div>':'<div class="trend t-st">→ stable</div>'):'';
+    const card=document.createElement('div');card.className='sc-card';
+    card.innerHTML=`<div class="sc-num">${avg>0?avg.toFixed(1):'—'}</div><div class="sc-name">${c.name}</div>${tb}<div class="sc-bar"><div class="sc-fill" style="width:${pct}%"></div></div>`;
+    sg.appendChild(card);
+  });
+  const wkEl=document.getElementById('wk-rows');wkEl.innerHTML='';
+  if(allWks.length===0){
+    wkEl.innerHTML='<div style="font-size:11px;color:var(--dust)">No weekly data yet.</div>';
+  }else{
+    CONCERNS.forEach(c=>{
+      const row=document.createElement('div');row.className='wk-row';
+      let h=`<div class="wk-lbl">${c.name}</div><div class="wk-bars">`;
+      allWks.forEach(wk=>{
+        const val=wkAvgs[wk][c.id];const pct=Math.round(val/5*100);
+        h+=`<div class="wk-bar-row"><div class="wk-wlbl">${wk.split('_')[1]}</div><div class="wk-bg"><div class="wk-fg" style="width:${pct}%"></div></div><div class="wk-val">${val>0?val.toFixed(1):'—'}</div></div>`;
+      });
+      h+='</div>';row.innerHTML=h;wkEl.appendChild(row);
+    });
+  }
+  const ph=document.getElementById('photo-hist');ph.innerHTML='';
+  const photoDays=Object.keys(appData).filter(k=>k.length===10&&appData[k].photos&&appData[k].photos.am).sort();
+  if(photoDays.length===0){
+    ph.innerHTML='<div class="hist-empty">No morning photos yet.<br>Upload photos daily in the Photos tab.<br>They appear here oldest to newest so you can see your skin change over time.</div>';
+  }else{
+    photoDays.forEach(dk=>{
+      const el=document.createElement('div');el.className='hist-item';
+      const d=keyToDate(dk);
+      el.innerHTML=`<img src="${appData[dk].photos.am}" alt="${dk}"><div class="hist-lbl">${dayName(dk)} ${d.getDate()} ${d.toLocaleDateString('en-GB',{month:'short'})} ${d.getFullYear()}</div>`;
+      ph.appendChild(el);
+    });
+  }
+  const nEl=document.getElementById('all-notes');nEl.innerHTML='';
+  let hasN=false;
+  allWks.forEach(wk=>{
+    const note=weekNotesCache[wk];
+    if(note&&note.trim()){
+      hasN=true;
+      const c=document.createElement('div');c.className='card';c.style.marginBottom='8px';
+      c.innerHTML=`<div style="font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--dust);margin-bottom:6px">${wk.replace('_',' · Week ')}</div><div style="font-size:12.5px;color:var(--ink);line-height:1.7">${note}</div>`;
+      nEl.appendChild(c);
+    }
+  });
+  if(!hasN)nEl.innerHTML='<div style="font-size:12px;color:var(--dust);padding:6px 2px;line-height:1.6">No weekly notes saved yet. Write reflections in the Weekly tab each week.</div>';
+}
+
+// SAVE DAY
+async function saveDay(){
+  const dd=getDayData(currentDay);
+  dd.notes=document.getElementById('day-notes').value;
+  const btn=document.getElementById('save-txt');
+  btn.innerHTML='<span class="spin"></span>Saving...';
+  const ok=await saveDayToFB(currentDay);
+  btn.textContent="Save today's progress";
+  if(ok){
+    toast('✓ Saved to Firebase successfully');
+    buildDayBar();renderWeekly();
+  }else if(!fbReady){
+    toast('⚠ Connect Firebase to save data');
+  }else{
+    toast('⚠ Save failed — check your connection');
+  }
+}
+
+// EXPORT BACKUP
+function exportBackup(){
+  const all={days:appData,weekNotes:weekNotesCache,exportedAt:new Date().toISOString()};
+  const blob=new Blob([JSON.stringify(all,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`foziya_backup_${todayKey()}.json`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('✓ Backup saved to Downloads folder');
+}
+
+// TAB SWITCH
+function showTab(id,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='weekly')renderWeekly();
+  if(id==='analysis')renderAnalysis();
+}
+
+// SERVICE WORKER
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(e=>console.log('SW:',e));
+}
+
+// BOOT
+async function openApp(fbCfg){
+  if(fbCfg){
+    const ok=initFB(fbCfg);
+    if(ok){
+      document.getElementById('sp-msg').textContent='Loading your data...';
+      await loadFromFirebase();
+    }else{
+      updateSyncUI(false);
+    }
+  }else{
+    updateSyncUI(false);
+  }
+  document.getElementById('hdr-date').textContent=keyFull(todayKey());
+  buildDayBar();renderAll();
+  setTimeout(()=>{
+    const sp=document.getElementById('splash');
+    sp.classList.add('fade');
+    setTimeout(()=>sp.style.display='none',600);
+  },800);
+}
+window.addEventListener('load',()=>{
+  const started=localStorage.getItem('fz_started');
+  const fbCfg=getSavedCfg();
+  if(started){
+    openApp(fbCfg);
+  }else{
+    // Show setup wizard
+    setTimeout(()=>{
+      document.getElementById('splash').classList.add('fade');
+      setTimeout(()=>{
+        document.getElementById('splash').style.display='none';
+        document.getElementById('setup').classList.add('show');
+      },600);
+    },1200);
+  }
+});
+</script>
+</body>
+</html>

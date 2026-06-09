@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="100" fill="#1a1208"/>
+  <rect x="40" y="40" width="432" height="432" rx="80" fill="#2c1f0e"/>
+  <circle cx="256" cy="256" r="180" fill="none" stroke="#c49a4a" stroke-width="6" opacity="0.3"/>
+  <text x="256" y="290" font-family="Georgia,serif" font-size="190" fill="#c49a4a" text-anchor="middle">F</text>
+  <text x="256" y="370" font-family="Arial,sans-serif" font-size="38" font-weight="300" fill="#9e8a72" text-anchor="middle" letter-spacing="8">SKIN</text>
+</svg>
